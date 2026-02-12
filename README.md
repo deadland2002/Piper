@@ -28,6 +28,7 @@ A group is a logical container inside an org.
 - Pipelines belong to a group
 - Managers manage groups
 - Admin has access to all groups
+- Pipelines are created using scripts
 
 ### 1.3 Pipeline
 A pipeline is a node graph representing a workflow.
@@ -54,6 +55,10 @@ Represents the execution of one node during a run.
 - stdout/stderr logs
 - artifacts metadata
 
+### 1.7 Scripts
+Scripts are executable object files.
+- Can be writted in js or python
+- Data executed while running scipts can be added to a global context privider so other scripts can use that data from global context provider.
 ---
 
 ## 2) System Architecture
@@ -128,3 +133,5 @@ type StoredGraph = {
     targetHandle?: string;
   }>;
 };
+```
+<img width="3439" height="1299" alt="image" src="https://github.com/user-attachments/assets/860452cc-9ea1-492f-b4fa-d9d5ab6b0acf" />
