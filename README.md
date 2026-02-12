@@ -1,144 +1,130 @@
-# Piper
+# Piper — Complete Project Document (Roles, Access, and Execution Flow)
 
-Piper is a **Docker-powered**, **GUI-based pipeline orchestration tool** built with **React + Node.js**, designed to run reusable script-based workflows (Python, JS, Bash, etc.) in isolated containers.
+Piper is a **Docker-powered**, **GUI-based pipeline orchestration tool** built with **React + Node.js**, where pipelines are built visually as node graphs and executed securely inside Docker containers.
 
-Piper lets you build workflows visually using nodes like **Script**, **Boolean**, **Fork**, **Join**, and more — with **org-based RBAC**, execution history, logs, and artifacts.
-
----
-
-## Features
-
-### Visual Pipeline Builder
-- Drag & drop nodes
-- Connect outputs → inputs
-- Node configuration panel
-- Reusable node templates & groups
-
-### Node Types
-Core nodes supported (and planned):
-- **Start** (entry point)
-- **End** (pipeline completion)
-- **Script Node** (any language, 1 input → 1 output)
-- **Boolean Node** (1 input → true/false outputs)
-- **Fork Node** (1 input → N outputs, parallel execution)
-- **Join Node** (N inputs → 1 output, waits for all)
-- **Switch Node** (multi-condition routing)
-- **Transform/Mapper Node** (JSON mapping without scripting)
-- **Retry Node** (retry policy wrapper)
-- **Delay Node** (sleep/wait)
-- **Error Handler Node** (catch failures & route)
-- **HTTP Node** (API call without scripting)
-- **Secrets Inject Node**
-- **Approval Gate Node**
-- **Notification Node**
+This document defines:
+- Roles and access control (RBAC)
+- Runner (service account) design
+- Pipeline lifecycle (draft → publish → run)
+- Execution flow and system architecture
+- Trigger methods (UI + external API)
 
 ---
 
-## Architecture
+## 1) Core Concepts
 
-Piper is built with 3 major layers:
+### 1.1 Organization (Org)
+Piper is multi-tenant. Every resource belongs to an Organization:
+- Users
+- Groups
+- Pipelines
+- Templates
+- Runs
+- Secrets
+- Runners
 
-### 1) Frontend (React)
-Responsible for:
-- Pipeline graph builder (canvas)
-- Node palette & templates library
-- Pipeline editor UI
-- Runs dashboard & logs viewer
-- Org/group/pipeline access UI (admin + manager)
+### 1.2 Group
+A group is a logical container inside an org.
+- Pipelines belong to a group
+- Managers manage groups
+- Admin has access to all groups
 
-### 2) Backend API (Node.js)
-Responsible for:
-- Authentication & RBAC
+### 1.3 Pipeline
+A pipeline is a node graph representing a workflow.
+- Pipelines are versioned
+- Draft can be edited
+- Published versions are executed
+
+### 1.4 Pipeline Version
+A snapshot of the pipeline graph.
+- Stored in PostgreSQL as JSONB
+- Used as the source of truth for executions
+- Runs always reference a pipeline version
+
+### 1.5 Run
+A run is a single execution of a pipeline version.
+- Contains status + timestamps
+- Contains per-node execution records
+- Stores logs and artifacts metadata
+
+### 1.6 Node Run
+Represents the execution of one node during a run.
+- Status: queued/running/success/failed/skipped
+- Input payload + output payload
+- stdout/stderr logs
+- artifacts metadata
+
+---
+
+## 2) System Architecture
+
+Piper consists of 3 major components:
+
+### 2.1 Frontend (React)
+Responsibilities:
+- Pipeline builder UI (`@xyflow/react`)
+- Node configuration UI
+- Pipeline version management UI
+- Run history UI
+- Run detail view (graph + node statuses)
+- Logs viewer
+- RBAC + org/group/pipeline management UI
+- Runner management UI
+
+### 2.2 Backend API (Node.js)
+Responsibilities:
+- Authentication (JWT)
+- Authorization (RBAC + ACL enforcement)
 - Pipeline CRUD + versioning
-- Run orchestration
+- Runner token authentication
+- Run creation + orchestration metadata
 - Secrets management
-- Logs & artifacts metadata
-- Real-time run events (SSE/WebSocket)
+- Run event streaming (SSE)
+- Audit logging
 
-### 3) Execution Worker (Docker)
-Responsible for:
-- Running scripts inside isolated Docker containers
-- Capturing stdout/stderr logs
-- Producing JSON output payload
-- Storing artifacts (files)
-
----
-
-## Multi-Tenant RBAC (Org Based)
-
-Piper supports organization-level access control.
-
-### Roles
-
-| Role | Permissions |
-|------|------------|
-| **Admin** | Full access to all groups + pipelines in org |
-| **Manager** | Access to 1+ groups, manages pipelines + assignments |
-| **Editor** | View/edit/run assigned pipelines |
-| **Viewer** | View assigned pipelines + run history (optional run permission) |
+### 2.3 Worker (Node.js + Docker)
+Responsibilities:
+- Consume run jobs from queue (BullMQ)
+- Execute pipeline graph nodes
+- Execute Script nodes in Docker
+- Capture logs
+- Persist node run results in PostgreSQL
+- Update pipeline run status
 
 ---
 
-## Execution Model
+## 3) Storage (PostgreSQL)
 
-A pipeline is a graph. A pipeline execution creates a **Run**, which creates **Node Runs**.
+PostgreSQL is the single source of truth.
 
-Each node run has:
-- input payload
-- output payload
-- logs (stdout/stderr)
-- start/end time
-- status (queued/running/success/fail/skipped)
+Stored in Postgres:
+- Org + users + memberships
+- Groups + memberships
+- Pipelines + versions
+- Pipeline graph JSONB
+- ACL permissions
+- Runs + node runs
+- Secrets (encrypted)
+- Runners + runner tokens
+- Audit logs
 
-### Standard Script Node Contract
+### Pipeline Graph Storage Format (JSONB)
 
-Scripts receive input as JSON and must output JSON.
+Compatible with `@xyflow/react`:
 
-- Input: `/workspace/input.json`
-- Output: `/workspace/output.json`
-- Logs: stdout/stderr captured
-- Exit code: `0 = success`, `non-zero = failure`
-
----
-
-## Tech Stack
-
-### Frontend
-- React + TypeScript
-- React Flow (graph editor)
-- Tailwind CSS
-
-### Backend
-- Node.js + TypeScript
-- PostgreSQL
-- Redis (queue + locks)
-- SSE / WebSocket (live updates)
-
-### Execution
-- Docker Engine
-- Worker process (job consumer)
-
-### Storage
-- PostgreSQL (pipelines, RBAC, runs)
-- Object storage (artifacts + full logs)
-
----
-
-## 📦 Monorepo Structure (Suggested)
-
-```txt
-piper/
-  apps/
-    web/                # React frontend
-    api/                # Node backend (REST + auth + RBAC)
-    worker/             # Execution worker (Docker runner)
-  packages/
-    shared/             # shared types + validation
-  docker/
-    runner-images/      # base images / templates
-  docs/
-    architecture.md
-    nodes.md
-    rbac.md
-  docker-compose.yml
-  README.md
+```ts
+type StoredGraph = {
+  nodes: Array<{
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: Record<string, any>;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
+  }>;
+};
