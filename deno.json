@@ -1,9 +1,14 @@
 {
   "imports": {
-    "hono": "jsr:@hono/hono@^4.11.9"
+    "hono": "jsr:@hono/hono@^4.11.9",
+    "hono/jwt": "jsr:@hono/hono@^4.11.9/jwt",
+    "hono/cors": "jsr:@hono/hono@^4.11.9/cors",
+    "hono/deno": "jsr:@hono/hono@^4.11.9/deno",
+    "sqlite": "jsr:@db/sqlite@0.11"
   },
   "tasks": {
-    "start": "deno run --allow-net main.ts"
+    "start": "deno run --allow-net --allow-read --allow-write --allow-env main.ts",
+    "dev": "deno run --allow-net --allow-read --allow-write --allow-env --watch main.ts"
   },
   "compilerOptions": {
     "jsx": "precompile",
