@@ -5,7 +5,7 @@ export function renderNavbar(): string {
   return `<nav class="navbar">
     <div class="navbar-container">
       <div class="navbar-brand">
-        <h1>Piper</h1>
+        <a href="/home">Piper</a>
       </div>
 
       <div class="nav-links">
@@ -18,8 +18,8 @@ export function renderNavbar(): string {
 
       <div class="navbar-user">
         <div class="user-avatar" id="user-avatar">?</div>
-        <span id="user-email">Loading...</span>
-        <button class="btn btn-sm btn-danger" onclick="handleLogout(event)">Logout</button>
+        <span id="user-email" class="user-email-text">Loading...</span>
+        <button class="btn btn-subtle" title="Logout" onclick="handleLogout(event)">🚪</button>
       </div>
     </div>
   </nav>`;

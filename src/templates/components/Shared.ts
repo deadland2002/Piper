@@ -3,9 +3,16 @@
  */
 
 /**
- * Reusable button component
+ * Reusable button component - with subtle styling
  */
 export function renderButton(label: string, onclick: string, className: string = "btn btn-primary"): string {
+  return `<button class="${className}" onclick="${onclick}">${label}</button>`;
+}
+
+/**
+ * Subtle button component with grey tint on hover
+ */
+export function renderSubtleButton(label: string, onclick: string, className: string = "btn btn-subtle"): string {
   return `<button class="${className}" onclick="${onclick}">${label}</button>`;
 }
 

@@ -145,7 +145,7 @@ function loadPageData() {
       window.location.href = '/home';
       return;
     }
-    loadTeams();
+    // Teams are now server-rendered, no need to load via API
   } else if (path.includes('/users')) {
     if (!authService.isAdmin()) {
       UIUtil.showAlert('You do not have permission to view users', 'error');
@@ -318,52 +318,6 @@ function getUserInitials(email) {
 // ============== TEAM MANAGEMENT ==============
 
 let currentEditTeamId = null;
-let teams = [];
-
-async function loadTeams() {
-  try {
-    UIUtil.setLoading('teams-list', true);
-    const response = await api.get('/team');
-
-    if (response.success) {
-      teams = response.data || [];
-      renderTeamsList();
-    }
-  } catch (error) {
-    UIUtil.showAlert(error.message || 'Failed to load teams', 'error');
-  } finally {
-    UIUtil.setLoading('teams-list', false);
-  }
-}
-
-function renderTeamsList() {
-  const container = document.getElementById('teams-list');
-
-  if (teams.length === 0) {
-    container.innerHTML = '<p class="text-center" style="color: var(--gray-400); padding: 2rem;">No teams created yet. Create your first team!</p>';
-    return;
-  }
-
-  let html = '<div style="padding: 1rem;">';
-  teams.forEach(team => {
-    html += `
-      <div class="team-item">
-        <div class="team-info">
-          <div class="team-name">${escapeHtml(team.name)}</div>
-          ${team.description ? `<div class="team-description">${escapeHtml(team.description)}</div>` : ''}
-          <div class="team-member-count">${team.memberCount || 0} members</div>
-        </div>
-        <div class="team-actions">
-          <button class="btn btn-sm btn-primary" onclick="handleEditTeam('${team.id}', '${escapeHtml(team.name)}', '${escapeHtml(team.description || '')}')">Edit</button>
-          <button class="btn btn-sm btn-info" onclick="handleManageTeamMembers('${team.id}')">Members</button>
-          <button class="btn btn-sm btn-danger" onclick="handleDeleteTeam('${team.id}', '${escapeHtml(team.name)}')">Delete</button>
-        </div>
-      </div>
-    `;
-  });
-  html += '</div>';
-  container.innerHTML = html;
-}
 
 function handleCreateTeam(event) {
   if (event) event.preventDefault();
@@ -399,7 +353,8 @@ async function handleSaveTeam(event) {
     if (response.success) {
       UIUtil.showAlert('Team created successfully', 'success');
       closeCreateTeamModal();
-      await loadTeams();
+      // Refresh page to show new team
+      window.location.reload();
     }
   } catch (error) {
     UIUtil.showAlert(error.message || 'Failed to create team', 'error');
@@ -426,7 +381,8 @@ async function handleDeleteTeam(teamId, name) {
 
     if (response.success) {
       UIUtil.showAlert('Team deleted successfully', 'success');
-      await loadTeams();
+      // Refresh page to update teams list
+      window.location.reload();
     }
   } catch (error) {
     UIUtil.showAlert(error.message || 'Failed to delete team', 'error');
@@ -482,7 +438,8 @@ async function handleAddMember(event) {
     if (response.success) {
       UIUtil.showAlert('Member added successfully', 'success');
       closeAddMemberModal();
-      await loadTeams();
+      // Refresh page to update teams list
+      window.location.reload();
     }
   } catch (error) {
     UIUtil.showAlert(error.message || 'Failed to add member', 'error');

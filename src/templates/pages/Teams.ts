@@ -1,10 +1,17 @@
 /**
  * Teams page template
  */
-import { renderFormGroup, renderHtmlShell } from "../components/Shared.ts";
+import { renderFormGroup, renderHtmlShell, escapeHtml } from "../components/Shared.ts";
 import { renderNavbar } from "../components/Navbar.ts";
 
-export function renderTeamsPage(): string {
+export interface Team {
+  id: string;
+  name: string;
+  description?: string;
+  memberCount: number;
+}
+
+export function renderTeamsPage(teams: Team[] = []): string {
   const pageContent = `<div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
       <h1>Teams</h1>
@@ -12,9 +19,22 @@ export function renderTeamsPage(): string {
     </div>
 
     <div id="teams-list" class="card">
-      <p class="text-center" style="color: var(--gray-400); padding: 2rem;">
-        Loading teams...
-      </p>
+      ${teams.length === 0 
+        ? `<p class="text-center" style="color: var(--gray-400); padding: 2rem;">No teams created yet. Create your first team!</p>` 
+        : `<div style="padding: 1rem;">${teams.map(team => `
+        <div class="team-item" style="padding: 1rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
+          <div style="flex: 1;">
+            <div style="font-weight: 600; color: var(--gray-900); margin-bottom: 0.25rem;">${escapeHtml(team.name)}</div>
+            ${team.description ? `<div style="color: var(--gray-600); font-size: 0.9rem; margin-bottom: 0.5rem;">${escapeHtml(team.description)}</div>` : ''}
+            <div style="color: var(--gray-500); font-size: 0.85rem;">${team.memberCount} members</div>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary" onclick="handleEditTeam('${team.id}', '${escapeHtml(team.name)}', '${escapeHtml(team.description || '')}')">Edit</button>
+            <button class="btn btn-subtle" onclick="handleManageTeamMembers('${team.id}')" title="Manage Members">👥</button>
+            <button class="btn btn-danger" onclick="handleDeleteTeam('${team.id}', '${escapeHtml(team.name)}')">Delete</button>
+          </div>
+        </div>
+      `).join('')}</div>`}
     </div>
 
     <!-- Create Team Modal -->

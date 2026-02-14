@@ -84,42 +84,59 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.navbar-content {
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 1.5rem;
 }
 
 .navbar-brand {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--primary);
 }
 
-.navbar-nav {
+.navbar-brand a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.navbar-brand a:hover {
+  color: var(--primary-dark);
+}
+
+.nav-links {
   display: flex;
   gap: 2rem;
   align-items: center;
 }
 
-.navbar-nav a {
+.nav-link {
   color: var(--gray-600);
   font-weight: 500;
   transition: color 0.2s;
+  text-decoration: none;
 }
 
-.navbar-nav a:hover {
+.nav-link:hover {
   color: var(--primary);
-  text-decoration: none;
 }
 
 .navbar-user {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.user-email-text {
+  font-size: 0.9rem;
+  color: var(--gray-600);
 }
 
 .user-avatar {
@@ -132,21 +149,7 @@ a:hover {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-}
-
-.logout-btn {
-  padding: 0.5rem 1rem;
-  background-color: var(--danger);
-  color: white;
-  border: none;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: background-color 0.2s;
-  font-weight: 500;
-}
-
-.logout-btn:hover {
-  background-color: #dc2626;
+  font-size: 0.9rem;
 }
 
 /* Main Content */
@@ -277,6 +280,24 @@ a:hover {
 
 .btn-danger:hover {
   background-color: #dc2626;
+}
+
+.btn-subtle {
+  background-color: transparent;
+  color: var(--gray-600);
+  padding: 0.5rem;
+  border: 1px solid transparent;
+  font-size: 1.2rem;
+}
+
+.btn-subtle:hover {
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
 }
 
 .btn-small {

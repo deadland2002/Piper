@@ -11,6 +11,7 @@ import { renderPipelinesPage } from "../templates/pages/Pipelines.ts";
 import { renderTeamsPage } from "../templates/pages/Teams.ts";
 import { renderRunnersPage } from "../templates/pages/Runners.ts";
 import { renderUsersPage } from "../templates/pages/Users.ts";
+import { TeamService } from "../database/team-service.ts";
 
 const pagesRouter = new Hono();
 
@@ -46,7 +47,8 @@ pagesRouter.get("/pipelines", (c) => {
  * Teams page route
  */
 pagesRouter.get("/teams", (c) => {
-  return c.html(renderTeamsPage());
+  const teams = TeamService.listTeams();
+  return c.html(renderTeamsPage(teams));
 });
 
 /**

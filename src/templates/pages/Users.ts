@@ -40,11 +40,11 @@ export function renderUsersPage(): string {
         </div>
         <div class="modal-body">
           <form id="create-user-form" onsubmit="handleCreateUser(event)">
-            ${renderFormGroup("create-user-email", "Email", "email", "user@example.com", true)}
-            ${renderFormGroup("create-user-password", "Password", "password", "Password", true)}
+            ${renderFormGroup("email", "Email", "email", "user@example.com", true)}
+            ${renderFormGroup("password", "Password", "password", "Password", true)}
             <div class="form-group">
-              <label for="create-user-role">Role</label>
-              <select id="create-user-role" name="role" required>
+              <label for="role">Role</label>
+              <select id="role" name="role" required>
                 <option value="">Select Role</option>
                 <option value="manager">Manager</option>
                 <option value="user">User</option>
