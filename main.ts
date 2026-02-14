@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { serveStatic } from "hono/deno";
 import { initializeDatabase } from "./src/database/connection.ts";
 import apiRoutes from "./src/routes/index.ts";
-import { renderPage } from "./src/templates/page-template.ts";
+import pagesRouter from "./src/routes/pages.ts";
 
 const app = new Hono();
 
@@ -14,22 +14,8 @@ console.log("✅ Database initialized");
 app.use("/css/*", serveStatic({ root: "./public" }));
 app.use("/js/*", serveStatic({ root: "./public" }));
 
-// Serve dynamically generated index.html for SPA routes
-app.get("/", (c) => {
-  return c.html(renderPage({ title: "Piper - Pipeline Orchestration" }));
-});
-
-app.get("/home", (c) => {
-  return c.html(renderPage({ title: "Piper - Home" }));
-});
-
-app.get("/login", (c) => {
-  return c.html(renderPage({ title: "Piper - Sign In" }));
-});
-
-app.get("/setup", (c) => {
-  return c.html(renderPage({ title: "Piper - Setup" }));
-});
+// Mount pages router for individual page routes
+app.route("/", pagesRouter);
 
 // Mount API routes
 app.route("/api", apiRoutes);

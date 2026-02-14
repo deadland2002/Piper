@@ -5,39 +5,21 @@ async function initializeApp() {
     setupStatus = await authService.checkSetupStatus();
 
     if (!setupStatus.initialized) {
-      showSetupView();
+      // Show setup page
+      document.body.innerHTML = '<p>Redirecting to setup...</p>';
+      window.location.href = '/setup';
     } else if (!authService.isAuthenticated()) {
-      showLoginView();
+      // Show login page
+      document.body.innerHTML = '<p>Redirecting to login...</p>';
+      window.location.href = '/login';
     } else {
-      showHomeView();
+      // User is authenticated, navbar should handle visibility
+      updateNavbar();
     }
   } catch (error) {
     console.error('App initialization error:', error);
     UIUtil.showAlert('Failed to initialize app', 'error');
   }
-}
-
-function showSetupView() {
-  hideAllViews();
-  UIUtil.show('setup-view');
-}
-
-function showLoginView() {
-  hideAllViews();
-  UIUtil.show('login-view');
-}
-
-function showHomeView() {
-  hideAllViews();
-  UIUtil.show('home-view');
-  updateNavbar();
-  goToHome();
-}
-
-function hideAllViews() {
-  UIUtil.hide('setup-view');
-  UIUtil.hide('login-view');
-  UIUtil.hide('home-view');
 }
 
 function updateNavbar() {
@@ -46,12 +28,24 @@ function updateNavbar() {
     document.getElementById('user-email').textContent = user.email;
     document.getElementById('user-avatar').textContent = getUserInitials(user.email);
 
-    if (authService.isAdmin()) {
+    const isAdmin = authService.isAdmin();
+    const isManager = user.role === 'manager';
+
+    if (isAdmin) {
       UIUtil.show('nav-users');
       UIUtil.show('card-users');
     } else {
       UIUtil.hide('nav-users');
       UIUtil.hide('card-users');
+    }
+
+    // Only super-admin and manager can see and access teams
+    if (isAdmin || isManager) {
+      UIUtil.show('nav-teams');
+      UIUtil.show('card-teams');
+    } else {
+      UIUtil.hide('nav-teams');
+      UIUtil.hide('card-teams');
     }
   }
 }
@@ -138,52 +132,34 @@ async function handleLogout(event) {
   }
 }
 
-function goToHome(event) {
-  if (event) event.preventDefault();
-  hidePages();
-  UIUtil.show('page-home');
-
-  const orgName = setupStatus.orgName || 'Organization';
-  document.getElementById('org-name').textContent = orgName;
-}
-
-function goToPipelines(event) {
-  if (event) event.preventDefault();
-  hidePages();
-  UIUtil.show('page-pipelines');
-}
-
-function goToTeams(event) {
-  if (event) event.preventDefault();
-  hidePages();
-  UIUtil.show('page-teams');
-}
-
-function goToRunners(event) {
-  if (event) event.preventDefault();
-  hidePages();
-  UIUtil.show('page-runners');
-}
-
-async function goToUsers(event) {
-  if (event) event.preventDefault();
-
-  if (!authService.isAdmin()) {
-    UIUtil.showAlert('You do not have permission to view users', 'error');
-    return;
+// Load data based on current page
+function loadPageData() {
+  const path = window.location.pathname.toLowerCase();
+  
+  if (path.includes('/teams')) {
+    const user = authService.getUser();
+    const isAdmin = authService.isAdmin();
+    const isManager = user?.role === 'manager';
+    if (!isAdmin && !isManager) {
+      UIUtil.showAlert('You do not have permission to view teams', 'error');
+      window.location.href = '/home';
+      return;
+    }
+    loadTeams();
+  } else if (path.includes('/users')) {
+    if (!authService.isAdmin()) {
+      UIUtil.showAlert('You do not have permission to view users', 'error');
+      window.location.href = '/home';
+      return;
+    }
+    loadUsers();
+  } else if (path.includes('/home')) {
+    const orgName = setupStatus.orgName || 'Organization';
+    const orgNameEl = document.getElementById('org-name');
+    if (orgNameEl) {
+      orgNameEl.textContent = orgName;
+    }
   }
-
-  hidePages();
-  UIUtil.show('page-users');
-  await loadUsers();
-}
-
-function hidePages() {
-  UIUtil.hide('page-home');
-  UIUtil.hide('page-pipelines');
-  UIUtil.hide('page-teams');
-  UIUtil.hide('page-runners');
-  UIUtil.hide('page-users');
 }
 
 async function loadUsers() {
@@ -321,11 +297,219 @@ function validatePasswordStrength(password) {
   return true;
 }
 
+function escapeHtml(text) {
+  if (!text) return '';
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
+function getUserInitials(email) {
+  if (!email) return '?';
+  const parts = email.split('@')[0].split(/[._-]/);
+  return parts.slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('');
+}
+
+// ============== TEAM MANAGEMENT ==============
+
+let currentEditTeamId = null;
+let teams = [];
+
+async function loadTeams() {
+  try {
+    UIUtil.setLoading('teams-list', true);
+    const response = await api.get('/team');
+
+    if (response.success) {
+      teams = response.data || [];
+      renderTeamsList();
+    }
+  } catch (error) {
+    UIUtil.showAlert(error.message || 'Failed to load teams', 'error');
+  } finally {
+    UIUtil.setLoading('teams-list', false);
+  }
+}
+
+function renderTeamsList() {
+  const container = document.getElementById('teams-list');
+
+  if (teams.length === 0) {
+    container.innerHTML = '<p class="text-center" style="color: var(--gray-400); padding: 2rem;">No teams created yet. Create your first team!</p>';
+    return;
+  }
+
+  let html = '<div style="padding: 1rem;">';
+  teams.forEach(team => {
+    html += `
+      <div class="team-item">
+        <div class="team-info">
+          <div class="team-name">${escapeHtml(team.name)}</div>
+          ${team.description ? `<div class="team-description">${escapeHtml(team.description)}</div>` : ''}
+          <div class="team-member-count">${team.memberCount || 0} members</div>
+        </div>
+        <div class="team-actions">
+          <button class="btn btn-sm btn-primary" onclick="handleEditTeam('${team.id}', '${escapeHtml(team.name)}', '${escapeHtml(team.description || '')}')">Edit</button>
+          <button class="btn btn-sm btn-info" onclick="handleManageTeamMembers('${team.id}')">Members</button>
+          <button class="btn btn-sm btn-danger" onclick="handleDeleteTeam('${team.id}', '${escapeHtml(team.name)}')">Delete</button>
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function handleCreateTeam(event) {
+  if (event) event.preventDefault();
+  currentEditTeamId = null;
+  document.getElementById('create-team-form').reset();
+  UIUtil.show('create-team-modal');
+  document.getElementById('team-name').focus();
+}
+
+function closeCreateTeamModal(event) {
+  if (event) event.preventDefault();
+  UIUtil.hide('create-team-modal');
+  document.getElementById('create-team-form').reset();
+}
+
+async function handleSaveTeam(event) {
+  event.preventDefault();
+
+  const name = document.getElementById('team-name').value.trim();
+  const description = document.getElementById('team-description').value.trim();
+
+  if (!name) {
+    UIUtil.showAlert('Team name is required', 'error');
+    return;
+  }
+
+  UIUtil.setButtonLoading('team-save-btn', true);
+
+  try {
+    const body = { name, description: description || undefined };
+    const response = await api.post('/team', body);
+
+    if (response.success) {
+      UIUtil.showAlert('Team created successfully', 'success');
+      closeCreateTeamModal();
+      await loadTeams();
+    }
+  } catch (error) {
+    UIUtil.showAlert(error.message || 'Failed to create team', 'error');
+  } finally {
+    UIUtil.setButtonLoading('team-save-btn', false);
+  }
+}
+
+function handleEditTeam(teamId, name, description) {
+  currentEditTeamId = teamId;
+  document.getElementById('team-name').value = name;
+  document.getElementById('team-description').value = description;
+  UIUtil.show('create-team-modal');
+  document.getElementById('team-name').focus();
+}
+
+async function handleDeleteTeam(teamId, name) {
+  if (!confirm('Are you sure you want to delete the team "' + name + '"?')) {
+    return;
+  }
+
+  try {
+    const response = await api.delete('/team/' + teamId);
+
+    if (response.success) {
+      UIUtil.showAlert('Team deleted successfully', 'success');
+      await loadTeams();
+    }
+  } catch (error) {
+    UIUtil.showAlert(error.message || 'Failed to delete team', 'error');
+  }
+}
+
+async function handleManageTeamMembers(teamId) {
+  try {
+    // Load all users to populate the select
+    const usersResponse = await api.get('/admin/users');
+    if (usersResponse.success) {
+      const users = usersResponse.data || [];
+      const select = document.getElementById('member-user-select');
+      
+      // Clear and populate user select
+      select.innerHTML = '<option value="">-- Select a user --</option>';
+      users.forEach(user => {
+        select.innerHTML += `<option value="${user.id}">${escapeHtml(user.email)}</option>`;
+      });
+    }
+
+    // Store team ID for member management
+    document.getElementById('add-member-modal').dataset.teamId = teamId;
+    UIUtil.show('add-member-modal');
+  } catch (error) {
+    UIUtil.showAlert(error.message || 'Failed to load users', 'error');
+  }
+}
+
+function closeAddMemberModal(event) {
+  if (event) event.preventDefault();
+  UIUtil.hide('add-member-modal');
+  document.getElementById('add-member-form').reset();
+}
+
+async function handleAddMember(event) {
+  event.preventDefault();
+
+  const teamId = document.getElementById('add-member-modal').dataset.teamId;
+  const userId = document.getElementById('member-user-select').value;
+  const permission = document.getElementById('member-permission').value;
+
+  if (!userId) {
+    UIUtil.showAlert('Please select a user', 'error');
+    return;
+  }
+
+  UIUtil.setButtonLoading('member-save-btn', true);
+
+  try {
+    const response = await api.post(`/team/${teamId}/members`, { userId, permission });
+
+    if (response.success) {
+      UIUtil.showAlert('Member added successfully', 'success');
+      closeAddMemberModal();
+      await loadTeams();
+    }
+  } catch (error) {
+    UIUtil.showAlert(error.message || 'Failed to add member', 'error');
+  } finally {
+    UIUtil.setButtonLoading('member-save-btn', false);
+  }
+}
+
 document.addEventListener('click', function(event) {
-  const modal = document.getElementById('create-user-modal');
-  if (event.target === modal) {
+  const userModal = document.getElementById('create-user-modal');
+  if (event.target === userModal) {
     closeUserModal();
+  }
+
+  const teamModal = document.getElementById('create-team-modal');
+  if (event.target === teamModal) {
+    closeCreateTeamModal();
+  }
+
+  const memberModal = document.getElementById('add-member-modal');
+  if (event.target === memberModal) {
+    closeAddMemberModal();
   }
 });
 
-document.addEventListener('DOMContentLoaded', initializeApp);
+// Initialize app on page load
+document.addEventListener('DOMContentLoaded', () => {
+  initializeApp();
+  loadPageData();
+});

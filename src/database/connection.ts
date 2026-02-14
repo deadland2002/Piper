@@ -43,6 +43,17 @@ export async function initializeDatabase(): Promise<Database> {
       updatedAt INTEGER NOT NULL
     );
 
+    -- Team members table (for team membership and permissions)
+    CREATE TABLE IF NOT EXISTS teamMembers (
+      teamId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      permission TEXT NOT NULL DEFAULT 'view',
+      addedAt INTEGER NOT NULL,
+      PRIMARY KEY (teamId, userId),
+      FOREIGN KEY (teamId) REFERENCES teams(id),
+      FOREIGN KEY (userId) REFERENCES users(id)
+    );
+
     -- Pipelines table
     CREATE TABLE IF NOT EXISTS pipelines (
       id TEXT PRIMARY KEY,
@@ -137,6 +148,8 @@ export async function initializeDatabase(): Promise<Database> {
     -- Create indexes for performance
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+    CREATE INDEX IF NOT EXISTS idx_teamMembers_userId ON teamMembers(userId);
+    CREATE INDEX IF NOT EXISTS idx_teamMembers_teamId ON teamMembers(teamId);
     CREATE INDEX IF NOT EXISTS idx_pipelines_teamId ON pipelines(teamId);
     CREATE INDEX IF NOT EXISTS idx_pipelines_createdBy ON pipelines(createdBy);
     CREATE INDEX IF NOT EXISTS idx_pipelineVersions_pipelineId ON pipelineVersions(pipelineId);

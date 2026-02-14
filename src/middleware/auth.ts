@@ -6,7 +6,7 @@ import { Context } from "hono";
 import { JWTPayload, AuthPayload } from "../types/index.ts";
 import { UserService } from "../database/user-service.ts";
 
-const JWT_SECRET = Deno.env.get("JWT_SECRET") || "development-secret-key";
+const _JWT_SECRET = Deno.env.get("JWT_SECRET") || "development-secret-key";
 const JWT_EXPIRY = 24 * 60 * 60; // 24 hours in seconds
 
 /**

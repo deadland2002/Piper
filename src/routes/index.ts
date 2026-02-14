@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 import setupRoutes from "./setup.ts";
 import authRoutes from "./auth.ts";
 import adminRoutes from "./admin.ts";
+import teamRoutes from "./team.ts";
 
 const api = new Hono();
 
@@ -26,6 +27,7 @@ api.get("/health", (c) => {
 api.route("/setup", setupRoutes);
 api.route("/auth", authRoutes);
 api.route("/admin", adminRoutes);
+api.route("/team", teamRoutes);
 
 // 404 handler
 api.notFound((c) => {

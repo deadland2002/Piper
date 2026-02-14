@@ -243,6 +243,64 @@ class API {
   createUser(email, password, role) {
     return this.post('/setup/create-admin', { email, password, role });
   }
+
+  // ===== Team API Methods =====
+
+  /**
+   * Get all teams
+   */
+  getTeams() {
+    return this.get('/team');
+  }
+
+  /**
+   * Get team by ID
+   */
+  getTeam(teamId) {
+    return this.get(`/team/${teamId}`);
+  }
+
+  /**
+   * Create team
+   */
+  createTeam(name, description) {
+    return this.post('/team', { name, description });
+  }
+
+  /**
+   * Update team
+   */
+  updateTeam(teamId, name, description) {
+    return this.put(`/team/${teamId}`, { name, description });
+  }
+
+  /**
+   * Delete team
+   */
+  deleteTeam(teamId) {
+    return this.delete(`/team/${teamId}`);
+  }
+
+  /**
+   * Add member to team
+   */
+  addTeamMember(teamId, userId, permission) {
+    return this.post(`/team/${teamId}/members`, { userId, permission });
+  }
+
+  /**
+   * Remove member from team
+   */
+  removeTeamMember(teamId, userId) {
+    return this.delete(`/team/${teamId}/members/${userId}`);
+  }
+
+  /**
+   * Update member permission
+   */
+  updateMemberPermission(teamId, userId, permission) {
+    return this.put(`/team/${teamId}/members/${userId}`, { permission });
+  }
 }
 
 // UI Utilities
@@ -306,6 +364,20 @@ class UIUtil {
         btn.textContent = 'Loading...';
       } else {
         btn.classList.remove('loading');
+      }
+    }
+  }
+
+  /**
+   * Set element loading state
+   */
+  static setLoading(elementId, loading = true) {
+    const el = document.getElementById(elementId);
+    if (el) {
+      if (loading) {
+        el.innerHTML = '<p class="text-center" style="color: var(--gray-400); padding: 2rem;">Loading...</p>';
+      } else {
+        el.innerHTML = '';
       }
     }
   }
