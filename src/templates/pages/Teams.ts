@@ -30,7 +30,7 @@ export function renderTeamsPage(teams: Team[] = []): string {
           </div>
           <div style="display: flex; gap: 0.5rem;">
             <button class="btn btn-primary" onclick="handleEditTeam('${team.id}', '${escapeHtml(team.name)}', '${escapeHtml(team.description || '')}')">Edit</button>
-            <button class="btn btn-subtle" onclick="handleManageTeamMembers('${team.id}')" title="Manage Members">👥</button>
+            <a href="/team-members/${team.id}" class="btn btn-subtle" title="Manage Members" style="text-decoration: none; display: inline-flex; align-items: center;">👥</a>
             <button class="btn btn-danger" onclick="handleDeleteTeam('${team.id}', '${escapeHtml(team.name)}')">Delete</button>
           </div>
         </div>

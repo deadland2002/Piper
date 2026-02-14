@@ -9,9 +9,11 @@ import { renderLoginPage } from "../templates/pages/Login.ts";
 import { renderSetupPage } from "../templates/pages/Setup.ts";
 import { renderPipelinesPage } from "../templates/pages/Pipelines.ts";
 import { renderTeamsPage } from "../templates/pages/Teams.ts";
+import { renderTeamMembersPage } from "../templates/pages/TeamMembers.ts";
 import { renderRunnersPage } from "../templates/pages/Runners.ts";
 import { renderUsersPage } from "../templates/pages/Users.ts";
 import { TeamService } from "../database/team-service.ts";
+import { UserService } from "../database/user-service.ts";
 
 const pagesRouter = new Hono();
 
@@ -49,6 +51,21 @@ pagesRouter.get("/pipelines", (c) => {
 pagesRouter.get("/teams", (c) => {
   const teams = TeamService.listTeams();
   return c.html(renderTeamsPage(teams));
+});
+
+/**
+ * Team members page route
+ */
+pagesRouter.get("/team-members/:teamId", (c) => {
+  const teamId = c.req.param("teamId");
+  const team = TeamService.getTeam(teamId);
+  const users = UserService.listAllUsers();
+  
+  if (!team) {
+    return c.text("Team not found", 404);
+  }
+  
+  return c.html(renderTeamMembersPage(team, users));
 });
 
 /**

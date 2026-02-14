@@ -389,39 +389,25 @@ async function handleDeleteTeam(teamId, name) {
   }
 }
 
-async function handleManageTeamMembers(teamId) {
-  try {
-    // Load all users to populate the select
-    const usersResponse = await api.get('/admin/users');
-    if (usersResponse.success) {
-      const users = usersResponse.data || [];
-      const select = document.getElementById('member-user-select');
-      
-      // Clear and populate user select
-      select.innerHTML = '<option value="">-- Select a user --</option>';
-      users.forEach(user => {
-        select.innerHTML += `<option value="${user.id}">${escapeHtml(user.email)}</option>`;
-      });
-    }
 
-    // Store team ID for member management
-    document.getElementById('add-member-modal').dataset.teamId = teamId;
-    UIUtil.show('add-member-modal');
-  } catch (error) {
-    UIUtil.showAlert(error.message || 'Failed to load users', 'error');
-  }
+// ============== TEAM MEMBER MANAGEMENT (Team Members Page) ==============
+
+function handleAddMemberModal(event) {
+  if (event) event.preventDefault();
+  UIUtil.show('add-member-modal');
 }
 
 function closeAddMemberModal(event) {
   if (event) event.preventDefault();
   UIUtil.hide('add-member-modal');
-  document.getElementById('add-member-form').reset();
+  const form = document.getElementById('add-member-form');
+  if (form) form.reset();
 }
 
 async function handleAddMember(event) {
   event.preventDefault();
 
-  const teamId = document.getElementById('add-member-modal').dataset.teamId;
+  const teamId = document.getElementById('team-id').value;
   const userId = document.getElementById('member-user-select').value;
   const permission = document.getElementById('member-permission').value;
 
@@ -438,13 +424,57 @@ async function handleAddMember(event) {
     if (response.success) {
       UIUtil.showAlert('Member added successfully', 'success');
       closeAddMemberModal();
-      // Refresh page to update teams list
+      // Refresh page to show new member
       window.location.reload();
     }
   } catch (error) {
     UIUtil.showAlert(error.message || 'Failed to add member', 'error');
   } finally {
     UIUtil.setButtonLoading('member-save-btn', false);
+  }
+}
+
+async function handleEditMember(teamId, userId, currentPermission) {
+  const newPermission = prompt('Current permission: ' + currentPermission + '\n\nChange to (view/edit):', currentPermission);
+
+  if (!newPermission || newPermission === currentPermission) {
+    return;
+  }
+
+  if (!['view', 'edit'].includes(newPermission)) {
+    UIUtil.showAlert('Invalid permission. Must be view or edit', 'error');
+    return;
+  }
+
+  try {
+    // This would require an update endpoint for team members
+    // For now, we'll remove and re-add with new permission
+    await api.delete(`/team/${teamId}/members/${userId}`);
+    const response = await api.post(`/team/${teamId}/members`, { userId, permission: newPermission });
+
+    if (response.success) {
+      UIUtil.showAlert('Member permission updated successfully', 'success');
+      window.location.reload();
+    }
+  } catch (error) {
+    UIUtil.showAlert(error.message || 'Failed to update member', 'error');
+  }
+}
+
+async function handleRemoveMember(teamId, userId, email) {
+  if (!confirm('Are you sure you want to remove ' + email + ' from this team?')) {
+    return;
+  }
+
+  try {
+    const response = await api.delete(`/team/${teamId}/members/${userId}`);
+
+    if (response.success) {
+      UIUtil.showAlert('Member removed successfully', 'success');
+      window.location.reload();
+    }
+  } catch (error) {
+    UIUtil.showAlert(error.message || 'Failed to remove member', 'error');
   }
 }
 
